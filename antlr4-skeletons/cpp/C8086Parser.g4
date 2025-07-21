@@ -1206,11 +1206,9 @@ statement returns [std::string stmt_val]
     s=statement
     {
         $stmt_val = "if(" + $e.expr_val + ")" + $s.stmt_val;
-        
-        // Place the false label after the IF block
+
         emitCode(currentIfFalseLabel + ":");
-        
-        // Restore previous IF labels for nested structure
+
         if (ifEndLabelStack.size() >= 2) {
             currentIfEndLabel = ifEndLabelStack.back();
             ifEndLabelStack.pop_back();
@@ -1232,16 +1230,13 @@ statement returns [std::string stmt_val]
     }
     | IF LPAREN 
     {
-        // Save current IF labels for nested IF handling
         std::string savedIfFalseLabel = currentIfFalseLabel;
         std::string savedIfEndLabel = currentIfEndLabel;
-        
-        // Set context for IF condition and generate labels
+
         inIfCondition = true;
         currentIfFalseLabel = newLabel();
         currentIfEndLabel = newLabel();
-        
-        // Store saved labels for restoration later
+
         if (!savedIfFalseLabel.empty()) {
             ifEndLabelStack.push_back(savedIfFalseLabel);
         }
@@ -1252,16 +1247,14 @@ statement returns [std::string stmt_val]
     e=expression RPAREN 
     {
         symb.enterScope();
-        inIfCondition = false;  // Reset context after expression
+        inIfCondition = false;  
     }
     s1=statement
     {
         symb.exitScope();
-        
-        // Jump to end after true block
+
         emitCode("JMP " + currentIfEndLabel);
-        
-        // Place false label for else block
+
         emitCode(currentIfFalseLabel + ":");
     } 
     ELSE 
@@ -1270,11 +1263,9 @@ statement returns [std::string stmt_val]
     }s2=statement
     {
         $stmt_val = "if(" + $e.expr_val + ")" + $s1.stmt_val + "else " + $s2.stmt_val;
-        
-        // Place end label after else block
+
         emitCode(currentIfEndLabel + ":");
-        
-        // Restore previous IF labels for nested structure
+
         if (ifEndLabelStack.size() >= 2) {
             currentIfEndLabel = ifEndLabelStack.back();
             ifEndLabelStack.pop_back();
@@ -1297,42 +1288,34 @@ statement returns [std::string stmt_val]
 
     | WHILE LPAREN 
     {
-        // Save current loop labels for nested loops
         std::string savedLoopBodyLabel = currentLoopBodyLabel;
         std::string savedContinueLabel = currentContinueLabel;
         std::string savedLoopExitLabel = currentLoopExitLabel;
-        
-        // Generate WHILE loop labels in the correct order
-        std::string conditionLabel = newLabel();  // Condition check label
-        std::string bodyLabel = newLabel();       // Loop body label
-        std::string exitLabel = newLabel();       // Exit label
-        
-        // Start with condition check
+
+        std::string conditionLabel = newLabel();  
+        std::string bodyLabel = newLabel();       
+        std::string exitLabel = newLabel();       
+
         emitCode(conditionLabel + ":");
-        
-        // Set context for WHILE loop condition
+
         inLoopCondition = true;
         currentLoopBodyLabel = bodyLabel;
         currentLoopExitLabel = exitLabel;
     }
     e=expression RPAREN
     {
-        inLoopCondition = false;  // Reset context after condition
-        
-        // Body label comes before the statement
+        inLoopCondition = false;  
+
         emitCode(bodyLabel + ":");
         
         symb.enterScope();  
     }     
     s=statement
     {
-        // After body execution, jump back to condition check
         emitCode("JMP " + conditionLabel);
-        
-        // Place exit label
+
         emitCode(exitLabel + ":");
-        
-        // Restore previous loop labels
+
         currentLoopBodyLabel = savedLoopBodyLabel;
         currentContinueLabel = savedContinueLabel;
         currentLoopExitLabel = savedLoopExitLabel;
@@ -1348,7 +1331,6 @@ statement returns [std::string stmt_val]
     {
         $stmt_val = "println(" + $ID->getText() + ");\n";
 
-        // Generate proper assembly for variable access
         std::string varName = $ID->getText();
         if (currentFunction.empty()) {
             emitCode("MOV AX, " + varName + "       ; Line " + std::to_string($ID->getLine()));
@@ -1376,18 +1358,15 @@ statement returns [std::string stmt_val]
     | RETURN e=expression SEMICOLON
     {
         $stmt_val = "return " + $e.expr_val + ";\n";
-        hasReturnStatement = true;  // Mark that this function has a return statement
-        
-        // Handle the return expression evaluation first
+        hasReturnStatement = true;  
+
         std::string exprStr = $e.expr_val;
         bool isSimpleConstant = (exprStr.find_first_not_of("0123456789") == std::string::npos);
         bool isSimpleVar = (exprStr.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") == std::string::npos);
-        
-        // Load return value into AX
+
         if (isSimpleConstant) {
             emitCode("MOV AX, " + exprStr);
         } else if (isSimpleVar) {
-            // For simple variables, load directly since factor rule no longer pushes
             if (currentFunction.empty() || localVarOffset.find(exprStr) == localVarOffset.end()) {
                 emitCode("MOV AX, " + exprStr);
             } else {
@@ -1399,41 +1378,25 @@ statement returns [std::string stmt_val]
                 }
             }
         } else {
-            // Complex expression - check if result is already in AX or needs to be popped
-            // For simple additions like "a+1", the result is already in AX from optimized operations
-            // Only pop if we're dealing with truly complex expressions that use the stack
-            bool needsPop = (exprStr.find("*") != std::string::npos) ||
-                           (exprStr.find("/") != std::string::npos) ||
-                           (exprStr.find("%") != std::string::npos) ||
-                           (exprStr.find("+") != std::string::npos) ||
-                           (exprStr.find("-") != std::string::npos) ||
-                           (exprStr.find("&&") != std::string::npos) ||
-                           (exprStr.find("||") != std::string::npos) ||
-                           (exprStr.find("(") != std::string::npos);
+            bool needsPop = (exprStr.find("*") != std::string::npos) || (exprStr.find("/") != std::string::npos) || (exprStr.find("%") != std::string::npos) || (exprStr.find("+") != std::string::npos) || (exprStr.find("-") != std::string::npos) || (exprStr.find("&&") != std::string::npos) || (exprStr.find("||") != std::string::npos) || (exprStr.find("(") != std::string::npos);
             
             if (needsPop) {
                 emitCode("POP AX");
             }
-            // For simple arithmetic like "a+1", "a-1", etc., the result is already in AX
         }
-        
-        // Function epilogue
+
         if (!currentFunction.empty()) {
             if (currentFunction == "main") {
-                // Main function termination
                 emitCode("ADD SP, " + std::to_string(currentOffset));
                 emitCode("POP BP");
                 emitCode("MOV AX,4CH");
                 emitCode("INT 21H");
             } else {
-                // Regular function epilogue
-                // Local variables cleanup
                 if (currentOffset > 0) {
                     emitCode("ADD SP, " + std::to_string(currentOffset));
                 }
                 emitCode("POP BP");
-                
-                // Return and clean up parameters
+
                 int paramCount = currentFunctionParams.size();
                 if (paramCount > 0) {
                     emitCode("RET " + std::to_string(paramCount * 2));
