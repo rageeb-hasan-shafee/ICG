@@ -56,19 +56,19 @@ options {
     bool inMainFunction = false;
     std::vector<std::string> asmCode;
     std::string returnLabel = "";
-    std::vector<std::string> currentFunctionParams;  // Track parameter names for current function
-    bool hasReturnStatement = false;  // Track if function has explicit return statement
-    bool inIfCondition = false;  // Track if we're in IF condition context
-    bool inLoopCondition = false; // Track if we're in FOR/WHILE condition context
-    bool inForIncrement = false;  // Track if we're in FOR increment context (suppress code generation)
-    bool inForCondition = false;  // Track if we're in FOR condition context (suppress code generation)
-    bool inAssignmentContext = false;  // Track if we're in assignment context (don't push results)
-    std::string currentIfFalseLabel = "";  // Store the false label for current IF
-    std::string currentIfEndLabel = "";    // Store the end label for current IF-ELSE
-    std::string currentLoopBodyLabel = "";  // Store the body label for current loop
-    std::string currentLoopExitLabel = "";  // Store the exit label for current loop
-    std::string currentContinueLabel = "";  // Store the continue label for current loop
-    std::vector<std::string> ifEndLabelStack;  // Stack for nested IF end labels
+    std::vector<std::string> currentFunctionParams; 
+    bool hasReturnStatement = false;  
+    bool inIfCondition = false;  
+    bool inLoopCondition = false; 
+    bool inForIncrement = false;  
+    bool inForCondition = false;  
+    bool inAssignmentContext = false;  
+    std::string currentIfFalseLabel = "";  
+    std::string currentIfEndLabel = "";    
+    std::string currentLoopBodyLabel = "";  
+    std::string currentLoopExitLabel = "";  
+    std::string currentContinueLabel = "";  
+    std::vector<std::string> ifEndLabelStack;  
 
     std::string newLabel(){
         return "L" + std::to_string(labelCount++);
@@ -203,12 +203,12 @@ options {
         std::vector<std::string> optimized;
         std::set<std::string> removedLabels;
         std::set<std::string> usedLabels;
-        // First pass: Remove redundant labels and record them
+        
+        // Removing redundant labels and record them
         for (size_t i = 0; i < asmCode.size(); i++) {
             if (asmCode[i].find("GLOBAL_VAR:") != std::string::npos) continue;
             std::string line = asmCode[i];
 
-            // (i) Remove redundant MOV AX, a / MOV a, AX
             if (i + 1 < asmCode.size()) {
                 std::string next = asmCode[i+1];
                 std::smatch m1, m2;
@@ -221,7 +221,7 @@ options {
                 }
             }
 
-            // (ii) Remove redundant PUSH/POP (allow comments/whitespace)
+            //Removing redundant PUSH/POP (allow comments/whitespace)
             if (i + 1 < asmCode.size()) {
                 std::string next = asmCode[i+1];
                 std::regex pop_ax_re("^\\tPOP AX(\\s*;.*)?$");
@@ -231,12 +231,12 @@ options {
                 }
             }
 
-            // (iii) Remove redundant operations
+            // Removing redundant operations
             if (line.find("ADD AX, 0") != std::string::npos || line.find("MUL AX, 1") != std::string::npos) {
                 continue;
             }
 
-            // (iv) Remove consecutive labels (keep only one)
+            // Removing consecutive labels
             if (line.length() > 0 && line.back() == ':' && line.find('\t') == std::string::npos) {
                 size_t j = i + 1;
                 while (j < asmCode.size() && asmCode[j].length() > 0 && asmCode[j].back() == ':' && asmCode[j].find('\t') == std::string::npos) {
@@ -262,7 +262,7 @@ options {
             optimized.push_back(line);
         }
 
-        // Second pass: Track label usage (jump targets)
+        // Tracking label usage (jump targets)
         std::regex jump_re("^\\t(JMP|JE|JNE|JG|JL|JGE|JLE|JZ|JNZ)\\s+([A-Za-z0-9_]+)(\\s*;.*)?$");
         for (const auto& line : optimized) {
             std::smatch jm;
@@ -271,16 +271,15 @@ options {
             }
         }
 
-        // Third pass: Remove unused labels and their assignments (e.g., MOV AX, 0 after label)
+        // Removing unused labels and their assignments (e.g., MOV AX, 0 after label)
         std::vector<std::string> finalOptimized;
         for (size_t i = 0; i < optimized.size(); i++) {
             std::string line = optimized[i];
-            // Label line
+
             if (line.length() > 0 && line.back() == ':' && line.find('\t') == std::string::npos) {
                 std::string label = line.substr(0, line.length() - 1);
-                // Remove label if not used anywhere
+
                 if (!usedLabels.count(label)) {
-                    // Also remove assignment immediately after label (e.g., MOV AX, 0)
                     if (i + 1 < optimized.size()) {
                         std::regex mov_ax_zero_re("^\\tMOV AX, 0(\\s*;.*)?$");
                         if (std::regex_match(optimized[i+1], mov_ax_zero_re)) {
@@ -293,7 +292,7 @@ options {
             finalOptimized.push_back(line);
         }
 
-        // Fourth pass: Remove jump instructions to removed labels
+        // Removing jump instructions to removed labels
         std::regex jump_re2("^\\t(JMP|JE|JNE|JG|JL|JGE|JLE|JZ|JNZ)\\s+([A-Za-z0-9_]+)(\\s*;.*)?$");
         std::set<std::string> allLabels;
         for (const auto& line : finalOptimized) {
@@ -307,7 +306,7 @@ options {
             if (std::regex_match(line, jm, jump_re2)) {
                 std::string target = jm[2];
                 if (!allLabels.count(target)) {
-                    continue; // Remove jump to removed label
+                    continue; 
                 }
             }
             reallyFinal.push_back(line);
@@ -423,14 +422,13 @@ program returns [str_list prog_list]
             line.erase(line.find_last_not_of(" \t\r\n") + 1);
             
             if (!line.empty()) {
-                // Handle initial declarations differently
                 if (isFirstDeclarations && line.find(";") != std::string::npos) {
                     size_t pos = 0;
                     while ((pos = line.find(";", pos)) != std::string::npos) {
                         std::string decl = line.substr(0, pos + 1);
                         result += decl + "\n\n";
                         line = line.substr(pos + 1);
-                        // Skip whitespace
+
                         while (!line.empty() && (line[0] == ' ' || line[0] == '\t')) {
                             line = line.substr(1);
                         }
@@ -607,7 +605,7 @@ func_definition returns [std::string func_def]
         
         if (inMainFunction) {
             if (!returnLabel.empty()) {
-                emitCode(returnLabel + ":");  // Use stored L7
+                emitCode(returnLabel + ":");  
             }
 
             if (!hasReturnStatement) {
@@ -636,10 +634,9 @@ func_definition returns [std::string func_def]
                 }
             }
             emitCode($ID->getText() + " ENDP");
-            returnLabel = "";  // Reset for next function
+            returnLabel = "";  
         }
 
-        // Check void function return type error
         if(functionTable.find(currentFunction) != functionTable.end()) {
             FunctionInfo& currentFunc = functionTable[currentFunction];
             if(currentFunc.returnType == "void" && $c.comp_stmt.find("return") != std::string::npos) {
@@ -663,10 +660,9 @@ func_definition returns [std::string func_def]
         currentFunction = $ID->getText();
         currentOffset = 0;
         localVarOffset.clear();
-        currentFunctionParams.clear();  // Clear parameter names for new function
-        hasReturnStatement = false;  // Reset return flag for new function
-        
-        // Generate function prologue
+        currentFunctionParams.clear();  
+        hasReturnStatement = false;  
+
         if ($ID->getText() == "main") {
             emitCode("main PROC");
             emitCode("MOV AX, @DATA");
@@ -731,9 +727,9 @@ func_definition returns [std::string func_def]
         $func_def = $t.name_line + " " + $ID->getText() + "()" + $c.comp_stmt;
         if (inMainFunction) {
             if (!returnLabel.empty()) {
-                emitCode(returnLabel + ":");  // Use stored L7
+                emitCode(returnLabel + ":");  
             }
-            // Only generate epilogue if no explicit return statement
+
             if (!hasReturnStatement) {
                 emitCode("ADD SP, " + std::to_string(currentOffset));
                 emitCode("POP BP");
@@ -742,10 +738,10 @@ func_definition returns [std::string func_def]
             }
             emitCode("main ENDP");
             inMainFunction = false;
-            returnLabel = "";  // Reset for next function
+            returnLabel = "";  
         } else {
             if (!returnLabel.empty()) {
-                emitCode(returnLabel + ":");  // Use stored return label for non-main functions too
+                emitCode(returnLabel + ":");  
             }
             // Only generate epilogue if no explicit return statement
             if (!hasReturnStatement) {
@@ -753,10 +749,9 @@ func_definition returns [std::string func_def]
                 emitCode("RET");
             }
             emitCode($ID->getText() + " ENDP");
-            returnLabel = "";  // Reset for next function
+            returnLabel = "";  
         }
-        
-        // Check void function return type error
+
         if(functionTable.find(currentFunction) != functionTable.end()) {
             FunctionInfo& currentFunc = functionTable[currentFunction];
             if(currentFunc.returnType == "void" && $c.comp_stmt.find("return") != std::string::npos) {
@@ -793,14 +788,14 @@ parameter_list returns [std::string param_list, std::vector<std::string> param_t
             SymbolInfo* paramSymbol = new SymbolInfo($ID->getText(), "ID");
             symb.insert(paramSymbol);
             
-            // Add to parameter tracking list
+            // Adding to parameter tracking list
             currentFunctionParams.push_back($ID->getText());
             
-            // Set parameter offset (parameters are at positive offsets from BP)
+            // Seting parameter offset (parameters are at positive offsets from BP)
             // Initial assignment - will be corrected after parsing all parameters
-            int totalParams = $param_types.size();            // Total parameters so far
-            int paramOffset = 4 + (totalParams - 1) * 2;      // Temporary assignment
-            localVarOffset[$ID->getText()] = -paramOffset;  // Store as negative to indicate positive offset
+            int totalParams = $param_types.size();            
+            int paramOffset = 4 + (totalParams - 1) * 2;      
+            localVarOffset[$ID->getText()] = -paramOffset;  
         }
         
         writeIntoparserLogFile("Line " + std::to_string($ID->getLine()) + ": parameter_list : parameter_list COMMA type_specifier ID\n");
@@ -826,10 +821,10 @@ parameter_list returns [std::string param_list, std::vector<std::string> param_t
             SymbolInfo* paramSymbol = new SymbolInfo($ID->getText(), "ID");
             symb.insert(paramSymbol);
             
-            // Add to parameter tracking list  
+            // Adding to parameter tracking list  
             currentFunctionParams.push_back($ID->getText());
             
-            // Set parameter offset (parameter will be at [BP+4] - will be adjusted later)
+            // Setting parameter offset (parameter will be at [BP+4] - will be adjusted later)
             int initialOffset = 4;
             localVarOffset[$ID->getText()] = -initialOffset;  // Store as negative to indicate parameter
         }
@@ -901,7 +896,7 @@ var_declaration returns [std::string var_decl]
             syntaxErrorCount++;        
         }
 
-        // Generate assembly for variable declarations
+        // Generating assembly for variable declarations
         std::string vars = $dl.var_list.get_list_as_string();
         std::istringstream varStream(vars);
         std::string varEntry;
@@ -939,7 +934,7 @@ var_declaration returns [std::string var_decl]
                 delete newSymbol;
             }
             
-            // Generate assembly
+            // Generating assembly
             if (currentFunction.empty()) {
                 // Global variable
                 emitCode("GLOBAL_VAR:" + varName + " DW 1 DUP (0000H)");
@@ -1076,8 +1071,6 @@ statement returns [std::string stmt_val]
     }
     | FOR LPAREN es1=expression_statement
     {
-        // FOR loop structure: for(init; condition; increment)
-        // Save current loop labels for nested loops
         std::string savedLoopBodyLabel = currentLoopBodyLabel;
         std::string savedContinueLabel = currentContinueLabel;
         std::string savedLoopExitLabel = currentLoopExitLabel;
@@ -1085,36 +1078,28 @@ statement returns [std::string stmt_val]
         currentLoopBodyLabel = newLabel();
         currentContinueLabel = newLabel();
         currentLoopExitLabel = newLabel();
-        
-        // The initialization (es1) is already processed above
-        // Jump to condition check first
+
         emitCode("JMP " + currentContinueLabel);
-        
-        // Loop body label
+
         emitCode(currentLoopBodyLabel + ":");
         symb.enterScope();
-        
-        // Set flags BEFORE parsing condition to suppress code generation
+
         inForCondition = true;
         inForIncrement = true;
     }
     es2=expression_statement
     {
-        // Store the condition for manual processing later
-        // Flags are already set above
+
     }
     e=expression RPAREN
     {
-        // Reset flags after processing increment expression
         inForCondition = false;
         inForIncrement = false;
     }
     s=statement
     {
         symb.exitScope();
-        
-        // After loop body, manually generate the increment operation
-        // Parse the increment expression to get the variable name
+
         std::string incrementExpr = $e.expr_val;
         std::string varName = incrementExpr.substr(0, incrementExpr.find_first_of("+-"));
         
@@ -1127,11 +1112,9 @@ statement returns [std::string stmt_val]
             emitCode("DEC AX");
             emitCode("MOV " + getVarOffset(varName) + ", AX");
         }
-        
-        // Condition check label - this is where we jump from the start and after each iteration
+
         emitCode(currentContinueLabel + ":");
-        
-        // Parse and generate the condition check dynamically
+
         std::string conditionExpr = $es2.expr_stmt;
         size_t pos = conditionExpr.find(';');
         if (pos != std::string::npos) {
@@ -1139,8 +1122,7 @@ statement returns [std::string stmt_val]
         }
         conditionExpr.erase(0, conditionExpr.find_first_not_of(" \t"));
         conditionExpr.erase(conditionExpr.find_last_not_of(" \t") + 1);
-        
-        // Parse condition: variable < value or variable > value, etc.
+
         std::string leftVar, rightValue, op;
         if (conditionExpr.find("<=") != std::string::npos) {
             size_t opPos = conditionExpr.find("<=");
@@ -1164,13 +1146,12 @@ statement returns [std::string stmt_val]
             op = ">";
         }
         
-        // Trim whitespace
+        // Trimmed whitespace
         leftVar.erase(0, leftVar.find_first_not_of(" \t"));
         leftVar.erase(leftVar.find_last_not_of(" \t") + 1);
         rightValue.erase(0, rightValue.find_first_not_of(" \t"));
         rightValue.erase(rightValue.find_last_not_of(" \t") + 1);
-        
-        // Generate the condition check
+
         emitCode("MOV AX, " + getVarOffset(leftVar) + "");
         emitCode("CMP AX, " + rightValue);
         
@@ -1183,14 +1164,11 @@ statement returns [std::string stmt_val]
         } else if (op == ">=") {
             emitCode("JGE " + currentLoopBodyLabel);
         }
-        
-        // Jump to exit if condition fails
+
         emitCode("JMP " + currentLoopExitLabel);
-        
-        // Exit label
+
         emitCode(currentLoopExitLabel + ":");
-        
-        // Restore previous loop labels
+
         currentLoopBodyLabel = savedLoopBodyLabel;
         currentContinueLabel = savedContinueLabel;
         currentLoopExitLabel = savedLoopExitLabel;

@@ -462,14 +462,13 @@ C8086Parser::ProgramContext* C8086Parser::program(int precedence) {
                               line.erase(line.find_last_not_of(" \t\r\n") + 1);
                               
                               if (!line.empty()) {
-                                  // Handle initial declarations differently
                                   if (isFirstDeclarations && line.find(";") != std::string::npos) {
                                       size_t pos = 0;
                                       while ((pos = line.find(";", pos)) != std::string::npos) {
                                           std::string decl = line.substr(0, pos + 1);
                                           result += decl + "\n\n";
                                           line = line.substr(pos + 1);
-                                          // Skip whitespace
+
                                           while (!line.empty() && (line[0] == ' ' || line[0] == '\t')) {
                                               line = line.substr(1);
                                           }
@@ -907,7 +906,7 @@ C8086Parser::Func_definitionContext* C8086Parser::func_definition() {
               
               if (inMainFunction) {
                   if (!returnLabel.empty()) {
-                      emitCode(returnLabel + ":");  // Use stored L7
+                      emitCode(returnLabel + ":");  
                   }
 
                   if (!hasReturnStatement) {
@@ -936,10 +935,9 @@ C8086Parser::Func_definitionContext* C8086Parser::func_definition() {
                       }
                   }
                   emitCode(antlrcpp::downCast<Func_definitionContext *>(_localctx)->idToken->getText() + " ENDP");
-                  returnLabel = "";  // Reset for next function
+                  returnLabel = "";  
               }
 
-              // Check void function return type error
               if(functionTable.find(currentFunction) != functionTable.end()) {
                   FunctionInfo& currentFunc = functionTable[currentFunction];
                   if(currentFunc.returnType == "void" && antlrcpp::downCast<Func_definitionContext *>(_localctx)->c->comp_stmt.find("return") != std::string::npos) {
@@ -970,10 +968,9 @@ C8086Parser::Func_definitionContext* C8086Parser::func_definition() {
               currentFunction = antlrcpp::downCast<Func_definitionContext *>(_localctx)->idToken->getText();
               currentOffset = 0;
               localVarOffset.clear();
-              currentFunctionParams.clear();  // Clear parameter names for new function
-              hasReturnStatement = false;  // Reset return flag for new function
-              
-              // Generate function prologue
+              currentFunctionParams.clear();  
+              hasReturnStatement = false;  
+
               if (antlrcpp::downCast<Func_definitionContext *>(_localctx)->idToken->getText() == "main") {
                   emitCode("main PROC");
                   emitCode("MOV AX, @DATA");
@@ -1042,9 +1039,9 @@ C8086Parser::Func_definitionContext* C8086Parser::func_definition() {
               antlrcpp::downCast<Func_definitionContext *>(_localctx)->func_def =  antlrcpp::downCast<Func_definitionContext *>(_localctx)->t->name_line + " " + antlrcpp::downCast<Func_definitionContext *>(_localctx)->idToken->getText() + "()" + antlrcpp::downCast<Func_definitionContext *>(_localctx)->c->comp_stmt;
               if (inMainFunction) {
                   if (!returnLabel.empty()) {
-                      emitCode(returnLabel + ":");  // Use stored L7
+                      emitCode(returnLabel + ":");  
                   }
-                  // Only generate epilogue if no explicit return statement
+
                   if (!hasReturnStatement) {
                       emitCode("ADD SP, " + std::to_string(currentOffset));
                       emitCode("POP BP");
@@ -1053,10 +1050,10 @@ C8086Parser::Func_definitionContext* C8086Parser::func_definition() {
                   }
                   emitCode("main ENDP");
                   inMainFunction = false;
-                  returnLabel = "";  // Reset for next function
+                  returnLabel = "";  
               } else {
                   if (!returnLabel.empty()) {
-                      emitCode(returnLabel + ":");  // Use stored return label for non-main functions too
+                      emitCode(returnLabel + ":");  
                   }
                   // Only generate epilogue if no explicit return statement
                   if (!hasReturnStatement) {
@@ -1064,10 +1061,9 @@ C8086Parser::Func_definitionContext* C8086Parser::func_definition() {
                       emitCode("RET");
                   }
                   emitCode(antlrcpp::downCast<Func_definitionContext *>(_localctx)->idToken->getText() + " ENDP");
-                  returnLabel = "";  // Reset for next function
+                  returnLabel = "";  
               }
-              
-              // Check void function return type error
+
               if(functionTable.find(currentFunction) != functionTable.end()) {
                   FunctionInfo& currentFunc = functionTable[currentFunction];
                   if(currentFunc.returnType == "void" && antlrcpp::downCast<Func_definitionContext *>(_localctx)->c->comp_stmt.find("return") != std::string::npos) {
@@ -1187,10 +1183,10 @@ C8086Parser::Parameter_listContext* C8086Parser::parameter_list(int precedence) 
                   SymbolInfo* paramSymbol = new SymbolInfo(antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText(), "ID");
                   symb.insert(paramSymbol);
                   
-                  // Add to parameter tracking list  
+                  // Adding to parameter tracking list  
                   currentFunctionParams.push_back(antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText());
                   
-                  // Set parameter offset (parameter will be at [BP+4] - will be adjusted later)
+                  // Setting parameter offset (parameter will be at [BP+4] - will be adjusted later)
                   int initialOffset = 4;
                   localVarOffset[antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText()] = -initialOffset;  // Store as negative to indicate parameter
               }
@@ -1273,14 +1269,14 @@ C8086Parser::Parameter_listContext* C8086Parser::parameter_list(int precedence) 
                                 SymbolInfo* paramSymbol = new SymbolInfo(antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText(), "ID");
                                 symb.insert(paramSymbol);
                                 
-                                // Add to parameter tracking list
+                                // Adding to parameter tracking list
                                 currentFunctionParams.push_back(antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText());
                                 
-                                // Set parameter offset (parameters are at positive offsets from BP)
+                                // Seting parameter offset (parameters are at positive offsets from BP)
                                 // Initial assignment - will be corrected after parsing all parameters
-                                int totalParams = _localctx->param_types.size();            // Total parameters so far
-                                int paramOffset = 4 + (totalParams - 1) * 2;      // Temporary assignment
-                                localVarOffset[antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText()] = -paramOffset;  // Store as negative to indicate positive offset
+                                int totalParams = _localctx->param_types.size();            
+                                int paramOffset = 4 + (totalParams - 1) * 2;      
+                                localVarOffset[antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getText()] = -paramOffset;  
                             }
                             
                             writeIntoparserLogFile("Line " + std::to_string(antlrcpp::downCast<Parameter_listContext *>(_localctx)->idToken->getLine()) + ": parameter_list : parameter_list COMMA type_specifier ID\n");
@@ -1511,7 +1507,7 @@ C8086Parser::Var_declarationContext* C8086Parser::var_declaration() {
                   syntaxErrorCount++;        
               }
 
-              // Generate assembly for variable declarations
+              // Generating assembly for variable declarations
               std::string vars = antlrcpp::downCast<Var_declarationContext *>(_localctx)->dl->var_list.get_list_as_string();
               std::istringstream varStream(vars);
               std::string varEntry;
@@ -1549,7 +1545,7 @@ C8086Parser::Var_declarationContext* C8086Parser::var_declaration() {
                       delete newSymbol;
                   }
                   
-                  // Generate assembly
+                  // Generating assembly
                   if (currentFunction.empty()) {
                       // Global variable
                       emitCode("GLOBAL_VAR:" + varName + " DW 1 DUP (0000H)");
@@ -2303,8 +2299,6 @@ C8086Parser::StatementContext* C8086Parser::statement() {
       setState(248);
       antlrcpp::downCast<StatementContext *>(_localctx)->es1 = expression_statement();
 
-              // FOR loop structure: for(init; condition; increment)
-              // Save current loop labels for nested loops
               std::string savedLoopBodyLabel = currentLoopBodyLabel;
               std::string savedContinueLabel = currentContinueLabel;
               std::string savedLoopExitLabel = currentLoopExitLabel;
@@ -2312,31 +2306,25 @@ C8086Parser::StatementContext* C8086Parser::statement() {
               currentLoopBodyLabel = newLabel();
               currentContinueLabel = newLabel();
               currentLoopExitLabel = newLabel();
-              
-              // The initialization (es1) is already processed above
-              // Jump to condition check first
+
               emitCode("JMP " + currentContinueLabel);
-              
-              // Loop body label
+
               emitCode(currentLoopBodyLabel + ":");
               symb.enterScope();
-              
-              // Set flags BEFORE parsing condition to suppress code generation
+
               inForCondition = true;
               inForIncrement = true;
           
       setState(250);
       antlrcpp::downCast<StatementContext *>(_localctx)->es2 = expression_statement();
 
-              // Store the condition for manual processing later
-              // Flags are already set above
+
           
       setState(252);
       antlrcpp::downCast<StatementContext *>(_localctx)->e = expression();
       setState(253);
       match(C8086Parser::RPAREN);
 
-              // Reset flags after processing increment expression
               inForCondition = false;
               inForIncrement = false;
           
@@ -2344,9 +2332,7 @@ C8086Parser::StatementContext* C8086Parser::statement() {
       antlrcpp::downCast<StatementContext *>(_localctx)->s = statement();
 
               symb.exitScope();
-              
-              // After loop body, manually generate the increment operation
-              // Parse the increment expression to get the variable name
+
               std::string incrementExpr = antlrcpp::downCast<StatementContext *>(_localctx)->e->expr_val;
               std::string varName = incrementExpr.substr(0, incrementExpr.find_first_of("+-"));
               
@@ -2359,11 +2345,9 @@ C8086Parser::StatementContext* C8086Parser::statement() {
                   emitCode("DEC AX");
                   emitCode("MOV " + getVarOffset(varName) + ", AX");
               }
-              
-              // Condition check label - this is where we jump from the start and after each iteration
+
               emitCode(currentContinueLabel + ":");
-              
-              // Parse and generate the condition check dynamically
+
               std::string conditionExpr = antlrcpp::downCast<StatementContext *>(_localctx)->es2->expr_stmt;
               size_t pos = conditionExpr.find(';');
               if (pos != std::string::npos) {
@@ -2371,8 +2355,7 @@ C8086Parser::StatementContext* C8086Parser::statement() {
               }
               conditionExpr.erase(0, conditionExpr.find_first_not_of(" \t"));
               conditionExpr.erase(conditionExpr.find_last_not_of(" \t") + 1);
-              
-              // Parse condition: variable < value or variable > value, etc.
+
               std::string leftVar, rightValue, op;
               if (conditionExpr.find("<=") != std::string::npos) {
                   size_t opPos = conditionExpr.find("<=");
@@ -2396,13 +2379,12 @@ C8086Parser::StatementContext* C8086Parser::statement() {
                   op = ">";
               }
               
-              // Trim whitespace
+              // Trimmed whitespace
               leftVar.erase(0, leftVar.find_first_not_of(" \t"));
               leftVar.erase(leftVar.find_last_not_of(" \t") + 1);
               rightValue.erase(0, rightValue.find_first_not_of(" \t"));
               rightValue.erase(rightValue.find_last_not_of(" \t") + 1);
-              
-              // Generate the condition check
+
               emitCode("MOV AX, " + getVarOffset(leftVar) + "");
               emitCode("CMP AX, " + rightValue);
               
@@ -2415,14 +2397,11 @@ C8086Parser::StatementContext* C8086Parser::statement() {
               } else if (op == ">=") {
                   emitCode("JGE " + currentLoopBodyLabel);
               }
-              
-              // Jump to exit if condition fails
+
               emitCode("JMP " + currentLoopExitLabel);
-              
-              // Exit label
+
               emitCode(currentLoopExitLabel + ":");
-              
-              // Restore previous loop labels
+
               currentLoopBodyLabel = savedLoopBodyLabel;
               currentContinueLabel = savedContinueLabel;
               currentLoopExitLabel = savedLoopExitLabel;
@@ -3376,33 +3355,21 @@ C8086Parser::ExpressionContext* C8086Parser::expression() {
       setState(373);
       antlrcpp::downCast<ExpressionContext *>(_localctx)->l = logic_expression();
 
-              inAssignmentContext = false;  // Reset assignment context flag
+              inAssignmentContext = false;  
               antlrcpp::downCast<ExpressionContext *>(_localctx)->expr_val =  antlrcpp::downCast<ExpressionContext *>(_localctx)->v->var_name + antlrcpp::downCast<ExpressionContext *>(_localctx)->assignopToken->getText() + antlrcpp::downCast<ExpressionContext *>(_localctx)->l->logic_val;
-              
-              // Check if right-hand side is a simple constant
+
               std::string logicStr = antlrcpp::downCast<ExpressionContext *>(_localctx)->l->logic_val;
-              bool isSimpleConstant = (logicStr.find("*") == std::string::npos && 
-                                      logicStr.find("+") == std::string::npos && 
-                                      logicStr.find("-") == std::string::npos &&
-                                      logicStr.find("/") == std::string::npos &&
-                                      logicStr.find("%") == std::string::npos &&
-                                      logicStr.find("(") == std::string::npos &&
-                                      logicStr.find_first_not_of("0123456789") == std::string::npos);
-              
-              // Check if it's an optimized logical expression (doesn't use stack)
-              bool isOptimizedLogicalExpr = (logicStr.find("||") != std::string::npos || 
-                                            logicStr.find("&&") != std::string::npos);
-              
-              // Check if it's an optimized arithmetic expression (simple variable + simple constant)
+              bool isSimpleConstant = (logicStr.find("*") == std::string::npos && logicStr.find("+") == std::string::npos && logicStr.find("-") == std::string::npos && logicStr.find("/") == std::string::npos && logicStr.find("%") == std::string::npos && logicStr.find("(") == std::string::npos && logicStr.find_first_not_of("0123456789") == std::string::npos);
+
+              bool isOptimizedLogicalExpr = (logicStr.find("||") != std::string::npos || logicStr.find("&&") != std::string::npos);
+
               bool isOptimizedArithmeticExpr = false;
               if (logicStr.find("+") != std::string::npos || logicStr.find("-") != std::string::npos) {
-                  // Check if it's in form "variable + constant" or "variable - constant"
                   size_t opPos = logicStr.find_first_of("+-");
                   if (opPos != std::string::npos) {
                       std::string leftPart = logicStr.substr(0, opPos);
                       std::string rightPart = logicStr.substr(opPos + 1);
-                      
-                      // Trim whitespace
+
                       leftPart.erase(0, leftPart.find_first_not_of(" \t"));
                       leftPart.erase(leftPart.find_last_not_of(" \t") + 1);
                       rightPart.erase(0, rightPart.find_first_not_of(" \t"));
@@ -3414,30 +3381,11 @@ C8086Parser::ExpressionContext* C8086Parser::expression() {
                       isOptimizedArithmeticExpr = (isLeftVar && isRightConst);
                   }
               }
-              
-              // Check if it's an optimized unary expression (simple variable with unary operator)
-              bool isOptimizedUnaryExpr = (logicStr.find("-") == 0 && // Starts with minus
-                                          logicStr.find("*") == std::string::npos && 
-                                          logicStr.find("+") == std::string::npos && 
-                                          logicStr.find("/") == std::string::npos &&
-                                          logicStr.find("%") == std::string::npos &&
-                                          logicStr.find("(") == std::string::npos &&
-                                          logicStr.substr(1).find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") == std::string::npos);
-              
-              // Check if it's a simple variable (just a variable name)
-              bool isSimpleVariable = (logicStr.find("*") == std::string::npos && 
-                                      logicStr.find("+") == std::string::npos && 
-                                      logicStr.find("-") == std::string::npos &&
-                                      logicStr.find("/") == std::string::npos &&
-                                      logicStr.find("%") == std::string::npos &&
-                                      logicStr.find("(") == std::string::npos &&
-                                      logicStr.find("[") == std::string::npos &&
-                                      logicStr.find("]") == std::string::npos &&
-                                      logicStr.find("&&") == std::string::npos &&
-                                      logicStr.find("||") == std::string::npos &&
-                                      logicStr.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") == std::string::npos);
-              
-              // Check if it's an array access (simple array access like w[0], x[1])
+
+              bool isOptimizedUnaryExpr = (logicStr.find("-") == 0 && logicStr.find("*") == std::string::npos && logicStr.find("+") == std::string::npos && logicStr.find("/") == std::string::npos && logicStr.find("%") == std::string::npos && logicStr.find("(") == std::string::npos && logicStr.substr(1).find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") == std::string::npos);
+
+              bool isSimpleVariable = (logicStr.find("*") == std::string::npos && logicStr.find("+") == std::string::npos && logicStr.find("-") == std::string::npos && logicStr.find("/") == std::string::npos && logicStr.find("%") == std::string::npos && logicStr.find("(") == std::string::npos && logicStr.find("[") == std::string::npos && logicStr.find("]") == std::string::npos && logicStr.find("&&") == std::string::npos && logicStr.find("||") == std::string::npos && logicStr.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") == std::string::npos);
+
               bool isSimpleArrayAccess = (logicStr.find("[") != std::string::npos && 
                                          logicStr.find("]") != std::string::npos &&
                                          logicStr.find("*") == std::string::npos && 
@@ -3448,51 +3396,39 @@ C8086Parser::ExpressionContext* C8086Parser::expression() {
                                          logicStr.find("(") == std::string::npos);
               
               if (isSimpleConstant) {
-                  // Direct loading for simple constants - no stack operations needed
                   emitCode("MOV AX, " + logicStr + "       ; Line " + std::to_string((antlrcpp::downCast<ExpressionContext *>(_localctx)->l != nullptr ? (antlrcpp::downCast<ExpressionContext *>(_localctx)->l->start) : nullptr)->getLine()));
               } else if (isSimpleVariable) {
-                  // Direct loading for simple variables - no stack operations needed
                   if (currentFunction.empty() || localVarOffset.find(logicStr) == localVarOffset.end()) {
                       emitCode("MOV AX, " + logicStr + "       ; Line " + std::to_string((antlrcpp::downCast<ExpressionContext *>(_localctx)->l != nullptr ? (antlrcpp::downCast<ExpressionContext *>(_localctx)->l->start) : nullptr)->getLine()));
                   } else {
                       emitCode("MOV AX, " + getVarOffset(logicStr) + "       ; Line " + std::to_string((antlrcpp::downCast<ExpressionContext *>(_localctx)->l != nullptr ? (antlrcpp::downCast<ExpressionContext *>(_localctx)->l->start) : nullptr)->getLine()));
                   }
               } else if (isOptimizedLogicalExpr || isOptimizedArithmeticExpr) {
-                  // Optimized expressions already have result in AX - no POP needed
-                  // Result is already in AX from the optimized operation
+
               } else if (isOptimizedUnaryExpr) {
-                  // For unary expressions, the result is already in AX
-                  // No additional operations needed
+
               } else if (isSimpleArrayAccess) {
-                  // For simple array accesses like w[0], x[1], the result is already in AX
-                  // No additional operations needed
+
               } else {
-                  // Complex expression - need to determine if result is on stack or in AX
-                  // Check if it's a simple arithmetic expression (var + var, var + const, etc.)
                   bool isSimpleArithmetic = false;
                   if (logicStr.find("+") != std::string::npos || logicStr.find("-") != std::string::npos) {
-                      // Count operators to determine complexity
                       int opCount = 0;
                       for (char c : logicStr) {
                           if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%') {
                               opCount++;
                           }
                       }
-                      // If only one operator and no complex expressions, result is in AX
                       isSimpleArithmetic = (opCount == 1 && 
                                            logicStr.find("(") == std::string::npos &&
                                            logicStr.find("&&") == std::string::npos &&
                                            logicStr.find("||") == std::string::npos);
                   }
                   
-                  // Check if it's a modulus operation result
                   bool isModulusResult = (logicStr.find("%") != std::string::npos);
                   
                   if (isSimpleArithmetic || isModulusResult) {
-                      // Result is already in AX from the arithmetic operation
-                      // No POP needed
+
                   } else {
-                      // Complex expression - result should be on stack
                       emitCode("POP AX       ; Line " + std::to_string((antlrcpp::downCast<ExpressionContext *>(_localctx)->l != nullptr ? (antlrcpp::downCast<ExpressionContext *>(_localctx)->l->start) : nullptr)->getLine()));
                   }
               }
@@ -3501,36 +3437,28 @@ C8086Parser::ExpressionContext* C8086Parser::expression() {
 
               size_t bracketPos = varName.find("[");
               if (bracketPos != std::string::npos) {
-                  // This is an array access like w[0] or x[1]
                   std::string arrayName = varName.substr(0, bracketPos);
                   std::string indexStr = varName.substr(bracketPos + 1);
                   indexStr = indexStr.substr(0, indexStr.find("]"));
-                  
-                  // Check if it's a global array or local array
+
                   if (currentFunction.empty() || localVarOffset.find(arrayName) == localVarOffset.end()) {
-                      // Global array - use direct indexing
                       if (indexStr.find_first_not_of("0123456789") == std::string::npos) {
-                          // Simple numeric index
                           int index = std::stoi(indexStr);
                           emitCode("MOV " + arrayName + "[" + std::to_string(index * 2) + "], AX");
                       } else {
-                          // Variable index - need to calculate offset
                           emitCode("MOV BX, " + indexStr);
                           emitCode("SHL BX, 1");  // Multiply by 2 for word size
                           emitCode("MOV " + arrayName + "[BX], AX");
                       }
                   } else {
-                      // Local array - use BP-relative addressing
                       int baseOffset = localVarOffset[arrayName];
                       if (indexStr.find_first_not_of("0123456789") == std::string::npos) {
-                          // Simple numeric index
                           int index = std::stoi(indexStr);
                           int actualOffset = baseOffset + (index * 2);
                           emitCode("MOV [BP-" + std::to_string(actualOffset) + "], AX");
-                      } else {
-                          // Variable index - need to calculate offset
+                      } else {              
                           emitCode("MOV BX, " + indexStr);
-                          emitCode("SHL BX, 1");  // Multiply by 2 for word size
+                          emitCode("SHL BX, 1");  
                           emitCode("MOV CX, " + std::to_string(baseOffset));
                           emitCode("ADD BX, CX");
                           emitCode("NEG BX");
@@ -3538,17 +3466,14 @@ C8086Parser::ExpressionContext* C8086Parser::expression() {
                       }
                   }
               } else {
-                  // Regular variable (not array)
                   if (currentFunction.empty()) {
                       emitCode("MOV " + varName + ", AX");
                   } else {
                       if (localVarOffset.find(varName) != localVarOffset.end()) {
                           int offset = localVarOffset[varName];
                           if (offset < 0) {
-                              // This is a parameter - modify it directly at its parameter location
                               emitCode("MOV [BP+" + std::to_string(-offset) + "], AX");
                           } else {
-                              // Regular local variable
                               emitCode("MOV [BP-" + std::to_string(offset) + "], AX");
                           }
                       } else {
@@ -3728,7 +3653,6 @@ C8086Parser::Logic_expressionContext* C8086Parser::logic_expression() {
                   emitCode("CMP AX, 0");
                   emitCode("JE " + label2);   
                   
-                  // Load second variable
                   if (currentFunction.empty() || localVarOffset.find(rel2Str) == localVarOffset.end()) {
                       emitCode("MOV AX, " + rel2Str + "       ; Line " + std::to_string(antlrcpp::downCast<Logic_expressionContext *>(_localctx)->logicopToken->getLine()));
                   } else {

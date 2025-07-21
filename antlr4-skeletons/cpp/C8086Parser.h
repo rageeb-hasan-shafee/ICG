@@ -100,19 +100,19 @@ public:
       bool inMainFunction = false;
       std::vector<std::string> asmCode;
       std::string returnLabel = "";
-      std::vector<std::string> currentFunctionParams;  // Track parameter names for current function
-      bool hasReturnStatement = false;  // Track if function has explicit return statement
-      bool inIfCondition = false;  // Track if we're in IF condition context
-      bool inLoopCondition = false; // Track if we're in FOR/WHILE condition context
-      bool inForIncrement = false;  // Track if we're in FOR increment context (suppress code generation)
-      bool inForCondition = false;  // Track if we're in FOR condition context (suppress code generation)
-      bool inAssignmentContext = false;  // Track if we're in assignment context (don't push results)
-      std::string currentIfFalseLabel = "";  // Store the false label for current IF
-      std::string currentIfEndLabel = "";    // Store the end label for current IF-ELSE
-      std::string currentLoopBodyLabel = "";  // Store the body label for current loop
-      std::string currentLoopExitLabel = "";  // Store the exit label for current loop
-      std::string currentContinueLabel = "";  // Store the continue label for current loop
-      std::vector<std::string> ifEndLabelStack;  // Stack for nested IF end labels
+      std::vector<std::string> currentFunctionParams; 
+      bool hasReturnStatement = false;  
+      bool inIfCondition = false;  
+      bool inLoopCondition = false; 
+      bool inForIncrement = false;  
+      bool inForCondition = false;  
+      bool inAssignmentContext = false;  
+      std::string currentIfFalseLabel = "";  
+      std::string currentIfEndLabel = "";    
+      std::string currentLoopBodyLabel = "";  
+      std::string currentLoopExitLabel = "";  
+      std::string currentContinueLabel = "";  
+      std::vector<std::string> ifEndLabelStack;  
 
       std::string newLabel(){
           return "L" + std::to_string(labelCount++);
@@ -247,12 +247,12 @@ public:
           std::vector<std::string> optimized;
           std::set<std::string> removedLabels;
           std::set<std::string> usedLabels;
-          // First pass: Remove redundant labels and record them
+          
+          // Removing redundant labels and record them
           for (size_t i = 0; i < asmCode.size(); i++) {
               if (asmCode[i].find("GLOBAL_VAR:") != std::string::npos) continue;
               std::string line = asmCode[i];
 
-              // (i) Remove redundant MOV AX, a / MOV a, AX
               if (i + 1 < asmCode.size()) {
                   std::string next = asmCode[i+1];
                   std::smatch m1, m2;
@@ -265,7 +265,7 @@ public:
                   }
               }
 
-              // (ii) Remove redundant PUSH/POP (allow comments/whitespace)
+              //Removing redundant PUSH/POP (allow comments/whitespace)
               if (i + 1 < asmCode.size()) {
                   std::string next = asmCode[i+1];
                   std::regex pop_ax_re("^\\tPOP AX(\\s*;.*)?$");
@@ -275,12 +275,12 @@ public:
                   }
               }
 
-              // (iii) Remove redundant operations
+              // Removing redundant operations
               if (line.find("ADD AX, 0") != std::string::npos || line.find("MUL AX, 1") != std::string::npos) {
                   continue;
               }
 
-              // (iv) Remove consecutive labels (keep only one)
+              // Removing consecutive labels
               if (line.length() > 0 && line.back() == ':' && line.find('\t') == std::string::npos) {
                   size_t j = i + 1;
                   while (j < asmCode.size() && asmCode[j].length() > 0 && asmCode[j].back() == ':' && asmCode[j].find('\t') == std::string::npos) {
@@ -306,7 +306,7 @@ public:
               optimized.push_back(line);
           }
 
-          // Second pass: Track label usage (jump targets)
+          // Tracking label usage (jump targets)
           std::regex jump_re("^\\t(JMP|JE|JNE|JG|JL|JGE|JLE|JZ|JNZ)\\s+([A-Za-z0-9_]+)(\\s*;.*)?$");
           for (const auto& line : optimized) {
               std::smatch jm;
@@ -315,16 +315,15 @@ public:
               }
           }
 
-          // Third pass: Remove unused labels and their assignments (e.g., MOV AX, 0 after label)
+          // Removing unused labels and their assignments (e.g., MOV AX, 0 after label)
           std::vector<std::string> finalOptimized;
           for (size_t i = 0; i < optimized.size(); i++) {
               std::string line = optimized[i];
-              // Label line
+
               if (line.length() > 0 && line.back() == ':' && line.find('\t') == std::string::npos) {
                   std::string label = line.substr(0, line.length() - 1);
-                  // Remove label if not used anywhere
+
                   if (!usedLabels.count(label)) {
-                      // Also remove assignment immediately after label (e.g., MOV AX, 0)
                       if (i + 1 < optimized.size()) {
                           std::regex mov_ax_zero_re("^\\tMOV AX, 0(\\s*;.*)?$");
                           if (std::regex_match(optimized[i+1], mov_ax_zero_re)) {
@@ -337,7 +336,7 @@ public:
               finalOptimized.push_back(line);
           }
 
-          // Fourth pass: Remove jump instructions to removed labels
+          // Removing jump instructions to removed labels
           std::regex jump_re2("^\\t(JMP|JE|JNE|JG|JL|JGE|JLE|JZ|JNZ)\\s+([A-Za-z0-9_]+)(\\s*;.*)?$");
           std::set<std::string> allLabels;
           for (const auto& line : finalOptimized) {
@@ -351,7 +350,7 @@ public:
               if (std::regex_match(line, jm, jump_re2)) {
                   std::string target = jm[2];
                   if (!allLabels.count(target)) {
-                      continue; // Remove jump to removed label
+                      continue; 
                   }
               }
               reallyFinal.push_back(line);
