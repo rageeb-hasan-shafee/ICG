@@ -1182,15 +1182,12 @@ statement returns [std::string stmt_val]
     
     | IF LPAREN 
     {
-        // Save current IF labels for nested IF handling
         std::string savedIfFalseLabel = currentIfFalseLabel;
         std::string savedIfEndLabel = currentIfEndLabel;
-        
-        // Set context for IF condition and generate false label
+
         inIfCondition = true;
         currentIfFalseLabel = newLabel();
-        
-        // Store saved labels for restoration later
+
         if (!savedIfFalseLabel.empty()) {
             ifEndLabelStack.push_back(savedIfFalseLabel);
         }
@@ -1201,7 +1198,7 @@ statement returns [std::string stmt_val]
     e=expression RPAREN
     {
         symb.enterScope();
-        inIfCondition = false;  // Reset context after expression
+        inIfCondition = false;  
     }     
     s=statement
     {
@@ -1561,7 +1558,7 @@ expression returns [std::string expr_val]
     }
     |	v=variable ASSIGNOP 
     {
-        inAssignmentContext = true;  // Set assignment context flag
+        inAssignmentContext = true;  
     }
     l=logic_expression
     {
@@ -2476,7 +2473,8 @@ factor returns [std::string factor_val]
                     emitCode("JE " + currentLoopExitLabel);  
                 }
             }
-        } else {
+        } else if (!inForIncrement) {
+            // Only generate decrement code if NOT in FOR loop increment section
             if (currentFunction.empty()) {
                 emitCode("MOV AX, " + varName);
                 emitCode("PUSH AX         ; Push old value");
